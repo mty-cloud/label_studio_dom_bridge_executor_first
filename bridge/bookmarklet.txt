@@ -1,0 +1,1 @@
+javascript:(()=>{const s=document.createElement('script');s.src='http://127.0.0.1:17892/bridge/ls_dom_executor_bridge.js?ts='+Date.now();s.charset='utf-8';s.onerror=()=>alert('LS连接器加载失败：请先启动桌面工具');document.documentElement.appendChild(s);})()

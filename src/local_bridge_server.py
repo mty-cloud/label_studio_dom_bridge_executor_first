@@ -47,8 +47,9 @@ class BridgeState:
 
     def register(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self.lock:
+            new_client_id = str(payload.get("clientId") or payload.get("client_id") or uuid.uuid4())
             self.connected = True
-            self.client_id = str(payload.get("clientId") or payload.get("client_id") or uuid.uuid4())
+            self.client_id = new_client_id
             self.page_url = str(payload.get("url") or "")
             self.page_title = str(payload.get("title") or "")
             self.task_id = str(payload.get("taskId") or payload.get("task_id") or "")
@@ -61,9 +62,13 @@ class BridgeState:
 
     def heartbeat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self.lock:
+            incoming_id = str(payload.get("clientId") or "")
+            # 只接受当前已注册 client 的心跳，屏蔽旧 session 残留
+            if self.client_id and incoming_id and incoming_id != self.client_id:
+                return {"ok": False, "error": "stale_client"}
             self.connected = True
-            if payload.get("clientId"):
-                self.client_id = str(payload.get("clientId"))
+            if incoming_id:
+                self.client_id = incoming_id
             self.page_url = str(payload.get("url") or self.page_url)
             self.page_title = str(payload.get("title") or self.page_title)
             self.task_id = str(payload.get("taskId") or self.task_id)
@@ -200,6 +205,11 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
         if path == "/bookmarklet.txt":
             txt_path = self.server.root_dir / "bridge" / "bookmarklet.txt"
             self._send_text(txt_path.read_text(encoding="utf-8"), "text/plain; charset=utf-8")
+            return
+
+        if path == "/bridge/loader":
+            html_path = self.server.root_dir / "bridge" / "loader.html"
+            self._send_text(html_path.read_text(encoding="utf-8"), "text/html; charset=utf-8")
             return
 
         self._send_json({"ok": False, "error": f"Unknown GET path: {path}"}, 404)

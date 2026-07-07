@@ -14,7 +14,7 @@
   <h1>Label Studio DOM 模板助手：安装 LS连接器</h1>
   <div class="box">
     <p><strong>先启动桌面工具</strong>，然后把下面这个按钮拖到浏览器收藏栏/个人收藏栏。</p>
-    <p><a class="bookmarklet" href="javascript:(()=>{const s=document.createElement('script');s.src='http://127.0.0.1:17892/bridge/ls_dom_executor_bridge.js?ts='+Date.now();s.charset='utf-8';s.onerror=()=>alert('LS连接器加载失败：请先启动桌面工具');document.documentElement.appendChild(s);})()">LS连接器</a></p>
+    <p><a class="bookmarklet" href="javascript:(()=>{fetch('http://127.0.0.1:17892/bridge/ls_dom_executor_bridge.js?ts='+Date.now(),{mode:'cors',cache:'no-store'}).then(r=>r.text()).then(code=>{const s=document.createElement('script');s.textContent=code;document.documentElement.appendChild(s)}).catch(()=>alert('LS连接器加载失败：请先启动桌面工具'))})()">LS连接器</a></p>
   </div>
   <h2>Safari 用户</h2>
   <ol>

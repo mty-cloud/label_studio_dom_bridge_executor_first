@@ -12,8 +12,11 @@
   const VERSION = 'dom-executor-1.1.0-first0';
 
   if (window.__LS_DOM_EXECUTOR_BRIDGE__ && window.__LS_DOM_EXECUTOR_BRIDGE__.running) {
-    window.__LS_DOM_EXECUTOR_BRIDGE__.showToast('LS DOM Bridge 已在运行');
-    return;
+    // 已有旧实例：停止旧的心跳和轮询，然后重新初始化
+    const old = window.__LS_DOM_EXECUTOR_BRIDGE__;
+    if (old.heartbeatTimer) clearInterval(old.heartbeatTimer);
+    if (old.pollTimer) clearInterval(old.pollTimer);
+    window.__LS_DOM_EXECUTOR_BRIDGE__ = null;
   }
 
   const bridge = {

@@ -259,12 +259,25 @@
     return m ? m[0] : '';
   }
 
-  function inferCompletedFromCells(texts) {
-    if (texts.length > 3 && /^[01]$/.test(texts[3])) return Number(texts[3]);
-    var idIdx = texts.findIndex(function (t) { return /^\d{5,}$/.test(t); });
-    var start = idIdx >= 0 ? idIdx + 1 : 0;
-    for (var _i10 = start; _i10 < Math.min(texts.length, start + 5); _i10++) {
-      if (/^[01]$/.test(texts[_i10])) return Number(texts[_i10]);
+  function inferCompleted(row, texts) {
+    // 方法1: 看第一列是否有已勾选的复选框（最可靠，跨项目通用）
+    var cells = Array.from(row.querySelectorAll('div.lsf-table__cell, [class*="table__cell"], [role="cell"], td'));
+    if (cells.length > 0) {
+      var cb = cells[0].querySelector('input[type="checkbox"]');
+      if (cb) return cb.checked ? 1 : 0;
+    }
+
+    // 方法2: 看整行是否有 completed class
+    if (row.classList.contains('completed') || row.getAttribute('data-completed') === 'true' || row.getAttribute('aria-selected') === 'true') return 1;
+
+    // 方法3: 扫描所有单元格文本中的 0/1 值（不再硬编码第3列）
+    // 优先跳过第0列（checkbox文本）和第1列（task id），从靠后的列找
+    for (var _i = cells.length - 1; _i >= 2; _i--) {
+      if (cells[_i] && /^[01]$/.test(normalizeText(cells[_i].textContent))) return Number(normalizeText(cells[_i].textContent));
+    }
+    // 兜底: 从前向后扫描
+    for (var _i2 = 0; _i2 < texts.length; _i2++) {
+      if (/^[01]$/.test(texts[_i2])) return Number(texts[_i2]);
     }
     return 0;
   }
@@ -273,7 +286,7 @@
     var rows = getRowCandidates().map(function (row, idx) {
       var rect = row.getBoundingClientRect();
       var texts = cellTextsForRow(row);
-      return { row: row, index: idx, rectTop: rect.top, rectBottom: rect.bottom, texts: texts, taskId: inferTaskId(texts), completed: inferCompletedFromCells(texts) };
+      return { row: row, index: idx, rectTop: rect.top, rectBottom: rect.bottom, texts: texts, taskId: inferTaskId(texts), completed: inferCompleted(row, texts) };
     }).filter(function (r) { return r.taskId; });
     rows.sort(function (a, b) { return a.rectTop - b.rectTop; });
     rows.forEach(function (r, idx) { r.index = idx; });

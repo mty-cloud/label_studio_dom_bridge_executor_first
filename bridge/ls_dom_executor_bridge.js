@@ -41,28 +41,72 @@
   }
 
   function getCurrentTaskId() {
+    // 尝试从 URL 查询参数获取 task_id（兼容多种参数名）
     try {
       const url = new URL(window.location.href);
-      const task = url.searchParams.get('task');
-      if (task) return String(task);
+      for (const key of ['task', 'task_id', 'id', 'selected']) {
+        const val = url.searchParams.get(key);
+        if (val && /^\d+$/.test(val)) return String(val);
+      }
+      // 也检查 hash fragment（某些版本用 #/...?task=xxx）
+      if (url.hash) {
+        const hashParams = new URLSearchParams(url.hash.split('?')[1] || '');
+        const val = hashParams.get('task');
+        if (val && /^\d+$/.test(val)) return String(val);
+      }
     } catch (_) {}
 
-    const taskIdEl = document.querySelector('div.lsf-current-task__task-id');
-    const text = normalizeText(taskIdEl && taskIdEl.textContent);
-    const m = text.match(/\d{5,}/);
-    return m ? m[0] : '';
+    // 尝试从 DOM 读取当前 task 信息（兼容多种选择器）
+    const selectors = [
+      'div.lsf-current-task__task-id',
+      '[class*="current-task"] [class*="task-id"]',
+      '.lsf-task-id',
+      '[data-testid="task-id"]',
+    ];
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const text = normalizeText(el.textContent);
+        const m = text.match(/\b(\d{5,})\b/);
+        if (m) return m[1];
+      }
+    }
+
+    return '';
+  }
+
+  function _hasLabelingControls() {
+    // 检查页面上是否存在标注控件（用于判断是否在标注页）
+    const controls = [
+      'input[name="不符合"]',
+      'input[name="符合"]',
+      'textarea[name="remark"]',
+      'button[name="submit"]',
+      '[data-testid="bottombar-submit-button"]',
+    ];
+    return controls.some(function (sel) {
+      return document.querySelector(sel) !== null;
+    });
   }
 
   function parsePageInfo() {
     const url = new URL(window.location.href);
     const projectMatch = url.pathname.match(/\/projects\/(\d+)/);
+    const taskId = getCurrentTaskId();
+    const hasControls = _hasLabelingControls();
+    // 放宽标注页判断：满足以下任一条件即视为标注页
+    //  1. URL 有 /projects/ 且能找到 task_id 且（路径含 /data 或页面有标注控件）
+    //  2. 页面直接存在标注控件（最宽松的兜底）
+    const isLabeling =
+      (!!projectMatch && !!taskId && (/\/projects\/\d+\/(data|labeling|label)/.test(url.pathname) || hasControls))
+      || hasControls;
     return {
       url: window.location.href,
       title: document.title,
       projectId: projectMatch ? projectMatch[1] : '',
       tabId: url.searchParams.get('tab') || '',
-      taskId: getCurrentTaskId(),
-      isLabelingPage: /\/projects\/\d+\/data/.test(url.pathname) && !!url.searchParams.get('task'),
+      taskId: taskId,
+      isLabelingPage: isLabeling,
     };
   }
 

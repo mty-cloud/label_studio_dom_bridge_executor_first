@@ -23,6 +23,7 @@ jobs:
         run: pip install pyinstaller
 
       - name: 编译为 .exe
+        shell: cmd
         run: |
           pyinstaller --onefile --windowed --noconsole ^
             --name "LabelStudio助手" ^

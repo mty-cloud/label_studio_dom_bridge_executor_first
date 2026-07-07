@@ -43,8 +43,10 @@
 
   function xhrJson(method, path, body) {
     return new Promise(function (resolve, reject) {
+      var url = SERVER + path;
+      if (method === 'GET') url += (path.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
       var x = new XMLHttpRequest();
-      x.open(method, SERVER + path + (method === 'GET' ? '&t=' + Date.now() : ''), true);
+      x.open(method, url, true);
       x.setRequestHeader('Content-Type', 'application/json');
       x.timeout = 5000;
       x.onload = function () {
@@ -62,7 +64,7 @@
   }
 
   function apiGet(path) {
-    return xhrJson('GET', path + '&clientId=' + encodeURIComponent(bridge.clientId), null);
+    return xhrJson('GET', path + '?clientId=' + encodeURIComponent(bridge.clientId), null);
   }
 
   // ======================== Page Info ========================
